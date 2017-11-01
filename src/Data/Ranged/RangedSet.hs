@@ -1,3 +1,5 @@
+{-# LANGUAGE DatatypeContexts #-}
+{-# LANGUAGE CPP #-}
 module Data.Ranged.RangedSet (
    -- ** Ranged Set Type
    RSet,

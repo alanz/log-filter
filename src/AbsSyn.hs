@@ -142,11 +142,11 @@ showRCtx (RightContextCode code) = showString "\\ " . showCode code
 data DFA s a = DFA
   { dfa_start_states :: [s],
     dfa_states       :: Map s (State s a)
-  }
+  } deriving (Show, Eq)
 
 data State s a = State { state_acc :: [Accept a],
                          state_out :: IntMap s -- 0..255 only
-                       }
+                       } deriving (Show,Eq)
 
 type SNum = Int
 

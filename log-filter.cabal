@@ -1,0 +1,140 @@
+name: log-filter
+version: 0.1.0
+-- don't forget updating changelog.md!
+license: BSD3
+license-file: LICENSE
+copyright: (c) Chis Dornan, Simon Marlow, Alan Zimmerman
+author: Chris Dornan, Simon Marlow and Alan Zimmerman
+maintainer: Alan Zimmerman <alan.zimm@gmail.com>
+bug-reports: https://github.com/alanz/log-filter/issues
+stability: experimental
+homepage: http://github.com/alanz/log-filter
+synopsis: log-filter is a library for generating high peformance filters for log lines
+description:
+  log-filter is a library that takes a list of regular expressions which may
+  occur in log lines of interest, and generates a DFA to recognise log lines
+  having at least one of these.
+category: Development
+cabal-version: >= 1.10
+build-type: Custom
+
+extra-source-files:
+        CHANGELOG.md
+        README.md
+        TODO
+        alex.spec
+        doc/Makefile
+        doc/aclocal.m4
+        doc/alex.1.in
+        doc/alex.xml
+        doc/config.mk.in
+        doc/configure.ac
+        doc/docbook-xml.mk
+        doc/fptools.css
+        examples/Makefile
+        examples/Tokens.x
+        examples/Tokens_gscan.x
+        examples/Tokens_posn.x
+        examples/examples.x
+        examples/haskell.x
+        examples/lit.x
+        examples/pp.x
+        examples/state.x
+        examples/tiny.y
+        examples/words.x
+        examples/words_monad.x
+        examples/words_posn.x
+        src/Parser.y.boot
+        src/Scan.x.boot
+        src/ghc_hooks.c
+         templates/GenericTemplate.hs
+        templates/wrappers.hs
+        tests/Makefile
+        tests/simple.x
+        tests/null.x
+        tests/tokens.x
+        tests/tokens_gscan.x
+        tests/tokens_posn.x
+        tests/tokens_bytestring.x
+        tests/tokens_posn_bytestring.x
+        tests/tokens_scan_user.x
+        tests/tokens_strict_bytestring.x
+        tests/tokens_monad_bytestring.x
+        tests/tokens_monadUserState_bytestring.x
+        tests/tokens_bytestring_unicode.x
+        tests/basic_typeclass.x
+        tests/basic_typeclass_bytestring.x
+        tests/default_typeclass.x
+        tests/gscan_typeclass.x
+        tests/posn_typeclass.x
+        tests/monad_typeclass.x
+        tests/monad_typeclass_bytestring.x
+        tests/monadUserState_typeclass.x
+        tests/monadUserState_typeclass_bytestring.x
+        tests/posn_typeclass_bytestring.x
+        tests/strict_typeclass.x
+        tests/unicode.x
+
+source-repository head
+    type:     git
+    location: https://github.com/alanz/log-filter.git
+
+library
+  exposed-modules:     DFA
+                       DFAMin
+                       DFS
+                       NFA
+  hs-source-dirs:      src
+  ghc-options:         -Wall
+  build-depends:       base
+                     , array
+                     , containers
+                     , QuickCheck
+  default-language:    Haskell2010
+
+-- executable alex
+--   hs-source-dirs: src
+--   main-is: Main.hs
+
+--   if flag(small_base)
+--     build-depends: base >= 2.1, array, containers, directory
+--   else
+--     build-depends: base >= 1.0
+
+--   build-depends: base < 5
+--   -- build-depends: Ranged-sets
+--   build-depends: QuickCheck >=2
+
+--   extensions: CPP
+--   ghc-options: -Wall -rtsopts
+--   other-modules:
+--         AbsSyn
+--         CharSet
+--         DFA
+--         DFAMin
+--         DFS
+--         Info
+--         Map
+--         NFA
+--         Output
+--         Paths_alex
+--         Parser
+--         ParseMonad
+--         Scan
+--         Set
+--         Sort
+--         Util
+--         UTF8
+--         Data.Ranged
+--         Data.Ranged.Boundaries
+--         Data.Ranged.RangedSet
+--         Data.Ranged.Ranges
+
+test-suite tests
+  type: exitcode-stdio-1.0
+  main-is: tests/Spec.hs
+  other-modules:       DfaSpec
+  hs-source-dirs:      src tests
+  build-depends: base
+               , hspec
+  default-language:    Haskell2010
