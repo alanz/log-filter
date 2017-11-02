@@ -8,7 +8,11 @@
 --
 -- ----------------------------------------------------------------------------}
 
-module Output (outputDFA) where
+module Output
+  (
+    outputDFA
+  , mkTables
+  ) where
 
 import AbsSyn
 import CharSet
@@ -497,12 +501,12 @@ findFreeOffset off check off_arr state = do
   if off == 0 then try_next else do
 
     -- don't use an offset we've used before
-  b <- readArray off_arr off
-  if b /= 0 then try_next else do
+    b <- readArray off_arr off
+    if b /= 0 then try_next else do
 
-    -- check whether the actions for this state fit in the table
-  ok <- fits off state check
-  if ok then return off else try_next
+      -- check whether the actions for this state fit in the table
+      ok <- fits off state check
+      if ok then return off else try_next
  where
         try_next = findFreeOffset (off+1) check off_arr state
 
