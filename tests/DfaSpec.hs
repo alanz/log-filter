@@ -84,7 +84,13 @@ spec = do
       (base !! s) + a `shouldBe` 1
       let t = Tables base table check deflt acc
       nextState t 0 97 `shouldBe` 2
-      nextState t 0 98 `shouldBe` 2
+      nextState t 0 98 `shouldBe` 0
+
+      nextState t 1 97 `shouldBe` 0
+      nextState t 1 98 `shouldBe` 0
+
+      nextState t 2 97 `shouldBe` 0
+      nextState t 2 98 `shouldBe` 1
 
     -- ---------------------------------
 
@@ -97,7 +103,9 @@ data Tables = Tables
     } deriving Show
 
 nextState :: Tables -> Int -> Int -> Int
-nextState t s a =
+nextState t s a
+  | s < 0 = 0
+  | otherwise =
   let
     Tables base table check deflt _accept = t
   in
