@@ -60,3 +60,4 @@ cabal.sandbox.config
 /data/test.log
 /data/tt.log
 /test.log.zip
+/data/long.txt

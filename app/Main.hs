@@ -1,18 +1,20 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE TemplateHaskell #-}
 
-
-import qyalified Data.ByteString.Char8 as C8
+import qualified Data.ByteString.Char8 as C8
 import           Data.Semigroup             hiding (option)
 import qualified Data.Set    as Set
-import           Options.Applicative.Simple
+import           Data.Time.Clock
 import           Data.Version                          (showVersion)
 import           Development.GitRev                    (gitCommitCount)
 import           Distribution.System                   (buildArch)
 import           Distribution.Text                     (display)
+import           Options.Applicative.Simple
 import qualified Paths_log_filter              as Meta
 
 import Recogniser
+
+-- ---------------------------------------------------------------------
 
 main :: IO ()
 main = do
@@ -66,8 +68,8 @@ run :: Settings -> IO ()
 run (Settings matchesFile logFile) = do
   putStrLn $ "logfile:" ++ logFile
   matches <- readFile matchesFile
-  logs    <- readFile logFile
-  let logLines = lines logs
+  logs    <- C8.readFile logFile
+  let logLines = C8.lines logs
 
   putStrLn $ "matching:" ++ show (lines matches)
   putStrLn $ "log lines:" ++ show (length logLines)
@@ -79,7 +81,13 @@ run (Settings matchesFile logFile) = do
       let !r = recogniser t line
       in if r == Set.empty then [] else [(lineNum,r)]
 
-  let r = concatMap doOne $ zip [0::Int ..] logLines
+  tstart <- getCurrentTime
+  let !r = concatMap doOne $ zip [0::Int ..] logLines
+      !len = length r
+  tend <- len `seq` getCurrentTime
 
-  print r
+  putStrLn $ unlines $ map show r
+  putStrLn $ "Number of results:" ++ show len
+
+  print $ diffUTCTime tend tstart
 

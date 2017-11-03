@@ -10,6 +10,7 @@ module Recogniser
   , mkAcc
   ) where
 
+import qualified Data.ByteString.Char8 as C8
 import           Data.Char
 import           Data.List
 import qualified Data.Set    as Set
@@ -24,8 +25,8 @@ import           Output
 {-# ANN module ("hlint: ignore Redundant do" :: String) #-}
 -- ---------------------------------------------------------------------
 
-recogniser :: Tables -> String -> Set.Set (Accept Code)
-recogniser t s = snd $ foldl' step (0,Set.empty) s
+recogniser :: Tables -> C8.ByteString -> Set.Set (Accept Code)
+recogniser t s = snd $ C8.foldl' step (0,Set.empty) s
   where
     step (st,ac) c = (st',Set.union ac ac')
       where
