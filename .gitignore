@@ -54,3 +54,9 @@
 .stack-work
 cabal.sandbox.config
 /TAGS
+/cabal.project.local
+/data/sh.txt
+/data/short.txt
+/data/test.log
+/data/tt.log
+/test.log.zip

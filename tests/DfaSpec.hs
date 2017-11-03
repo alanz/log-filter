@@ -2,7 +2,6 @@
 module DfaSpec where
 
 import           Data.Char
-import           Data.List
 import qualified Data.Map    as Map
 import qualified Data.IntMap as IM
 import qualified Data.Set    as Set
@@ -12,11 +11,7 @@ import           DFA
 import           DFAMin
 import           Info
 import           Output
--- import           NFA
--- import           Data.Array
--- import           Data.Ranged.Boundaries
--- import           Data.Ranged.RangedSet
--- import           Data.Ranged.Ranges
+import           Recogniser
 import           Test.Hspec
 
 -- ---------------------------------------------------------------------
@@ -97,6 +92,38 @@ spec = do
 
     -- ---------------------------------
 
+    it "dfa 2" $ do
+      let
+        enc = UTF8
+        toks = [ mkTok (stringAsRegex "2017110200002")
+               ]
+        scanner = Scanner "dfa2" toks
+        startcodes = [1]
+
+        dfa = (minimizeDFA $ scanner2dfa enc scanner startcodes)
+      putStrLn (infoDFA 1 "dfa2" dfa "")
+
+      let (base,table,check,deflt,acc) = mkTables dfa
+      base `shouldBe` [-49,-47,-46,-51,-44,-42,-41,-40,-39,-37,-36,-35,-34,0]
+      length table `shouldBe` 222
+      length check `shouldBe` 222
+      deflt `shouldBe` [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1]
+      acc `shouldBe` [[],[],[],[],[],[],[],[],[],[],[],[],[],[mkAcc 0]]
+
+      let s = 0
+          a = ord 'a'
+      a `shouldBe` 97
+      (base !! s) + a `shouldBe` 97 - 49
+      let t = Tables base table check deflt (map Set.fromList acc)
+      nextState t 0 97        `shouldBe` (0,Set.fromList [])
+      nextState t 0 (ord '2') `shouldBe` (5,Set.fromList [])
+      -- nextState t 0 (ord '-') `shouldBe` (5,Set.fromList [])
+      let a = ord '-'
+      (base !! s) + a `shouldBe` -4
+
+
+    -- ---------------------------------
+
   describe "constructs a DFA using helper" $ do
     -- ---------------------------------
 
@@ -115,7 +142,7 @@ spec = do
 
     -- ---------------------------------
 
-    it "runs the recogniser" $ do
+    it "runs the recogniser on simple case" $ do
 
       let t = makeMatcher ["ab","a"]
       recogniser t ""          `shouldBe` Set.empty
@@ -123,77 +150,17 @@ spec = do
       recogniser t "fa"        `shouldBe` Set.fromList [mkAcc 1]
       recogniser t "ab"        `shouldBe` Set.fromList [mkAcc 1,mkAcc 0]
       recogniser t "xxxabcdea" `shouldBe` Set.fromList [mkAcc 0,mkAcc 1]
+    -- ---------------------------------
 
--- ---------------------------------------------------------------------
+    it "runs the recogniser 2" $ do
 
-recogniser :: Tables -> String -> Set.Set (Accept Code)
-recogniser t s = snd $ foldl' step (0,Set.empty) s
-  where
-    step (st,ac) c = (st',Set.union ac ac')
-      where
-        (st',ac') = nextState t st (ord c)
+      let t = makeMatcher ["2017110200002"]
+      recogniser t ""          `shouldBe` Set.empty
 
--- ---------------------------------------------------------------------
+      recogniser t "2017-"
+                               `shouldBe` Set.empty
 
-makeMatcher :: [String] -> Tables
-makeMatcher ss = Tables base table check deflt acc'
-  where
-    enc = UTF8
-    toks = map (mkTok . stringAsRegex) ss
-    scanner = Scanner "foo" toks
-    startcodes = [1]
-    dfa = minimizeDFA $ scanner2dfa enc scanner startcodes
-    (base,table,check,deflt,acc) = mkTables dfa
-    acc' = map Set.fromList acc
-
--- ---------------------------------------------------------------------
-
-stringAsRegex :: String -> RExp
-stringAsRegex s = foldl' acc Eps s
-  where
-    acc re c = re :%% Ch (charSetSingleton c)
-
--- ---------------------------------------------------------------------
-
-data Tables = Tables
-    { tblBase    :: ![Int]
-    , tblTable   :: ![Int]
-    , tblCheck   :: ![Int]
-    , tblDefault :: ![Int]
-    , tblAccept  :: ![Set.Set (Accept Code)]
-    } deriving Show
-
--- ---------------------------------------------------------------------
-
-nextState :: Tables -> Int -> Int -> (Int,Set.Set (Accept Code))
-nextState t s a
-  | s < 0 = (0,Set.empty)
-  | otherwise =
-  let
-    Tables base table check deflt accept = t
-    ret ns = (ns,accept !! ns)
-  in
-    if check !! ((base !! s) + a) == a
-      then ret $ table !! ((base !! s) + a)
-      else nextState t (deflt !! s) a
-
--- ---------------------------------------------------------------------
-
-mkTok :: RExp -> RECtx
-mkTok re = RECtx { reCtxStartCodes = [("code1",1)]
-                 , reCtxPreCtx     = Nothing
-                 , reCtxRE         = re
-                 , reCtxPostCtx    = NoRightContext
-                 , reCtxCode       = Nothing
-                 }
-
--- ---------------------------------------------------------------------
-
-mkAcc :: Int -> Accept Code
-mkAcc prio = Acc { accPrio     = prio
-                 , accAction   = Nothing
-                 , accLeftCtx  = Nothing
-                 , accRightCtx = NoRightContext
-                 }
+      recogniser t "2017-11-02T00:00:20.054+00,REQ,v4,D0E53F7EBF601E71884A001122334494,/deliver/w2mgmbh_naughtytube_1901_gh_billing_dlrproc,197.189.228.76:56268,200,0ms,username=w2mgh001&password=zoo3ooj5&to=1901&at=20171102000020&status=REJECTD&REF=1%2F55CE79D2D4530%2F155%2F490100035%2Fall%2FNaughty%20Girls%20-%20Clic&SYNREF=375A33BEBEDE1E71906F001122334471&from=233265710585&sub=001&err=107&dlvrd=000,OK%2CD0E53F7EBF601E71884A001122334494,https"
+                               `shouldBe` Set.fromList [mkAcc 0]
 
 -- ---------------------------------------------------------------------
