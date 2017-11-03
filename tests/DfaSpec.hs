@@ -1,8 +1,11 @@
 {-# LANGUAGE OverloadedStrings     #-}
 module DfaSpec where
 
+import           Data.Char
+import           Data.List
 import qualified Data.Map    as Map
 import qualified Data.IntMap as IM
+import qualified Data.Set    as Set
 import           AbsSyn
 import           CharSet
 import           DFA
@@ -28,14 +31,14 @@ main = hspec spec
 
 spec :: Spec
 spec = do
-  describe "constructs a DFA" $ do
+  describe "constructs a DFA low level" $ do
     -- ---------------------------------
 
     it "dfa 1" $ do
       let
         enc = UTF8
-        toks = [ mkTok ((Ch (charSetSingleton 'a')) :%% (Ch (charSetSingleton 'b')))
-               , mkTok (Ch (charSetSingleton 'a'))
+        toks = [ mkTok (stringAsRegex "ab")
+               , mkTok (stringAsRegex "a")
                ]
         scanner = Scanner "foo" toks
         startcodes = [1]
@@ -82,36 +85,99 @@ spec = do
       let s = 0
           a = 97
       (base !! s) + a `shouldBe` 1
-      let t = Tables base table check deflt acc
-      nextState t 0 97 `shouldBe` 2
-      nextState t 0 98 `shouldBe` 0
+      let t = Tables base table check deflt (map Set.fromList acc)
+      nextState t 0 97 `shouldBe` (2,Set.fromList [mkAcc 1])
+      nextState t 0 98 `shouldBe` (0,Set.fromList [])
 
-      nextState t 1 97 `shouldBe` 0
-      nextState t 1 98 `shouldBe` 0
+      nextState t 1 97 `shouldBe` (0,Set.fromList [])
+      nextState t 1 98 `shouldBe` (0,Set.fromList [])
 
-      nextState t 2 97 `shouldBe` 0
-      nextState t 2 98 `shouldBe` 1
+      nextState t 2 97 `shouldBe` (0,Set.fromList [])
+      nextState t 2 98 `shouldBe` (1,Set.fromList [mkAcc 0])
 
     -- ---------------------------------
 
+  describe "constructs a DFA using helper" $ do
+    -- ---------------------------------
+
+    it "dfa 1" $ do
+
+      let t = makeMatcher ["ab","a"]
+
+      nextState t 0 97 `shouldBe` (2,Set.fromList [mkAcc 1])
+      nextState t 0 98 `shouldBe` (0,Set.fromList [])
+
+      nextState t 1 97 `shouldBe` (0,Set.fromList [])
+      nextState t 1 98 `shouldBe` (0,Set.fromList [])
+
+      nextState t 2 97 `shouldBe` (0,Set.fromList [])
+      nextState t 2 98 `shouldBe` (1,Set.fromList [mkAcc 0])
+
+    -- ---------------------------------
+
+    it "runs the recogniser" $ do
+
+      let t = makeMatcher ["ab","a"]
+      recogniser t ""          `shouldBe` Set.empty
+      recogniser t "a"         `shouldBe` Set.fromList [mkAcc 1]
+      recogniser t "fa"        `shouldBe` Set.fromList [mkAcc 1]
+      recogniser t "ab"        `shouldBe` Set.fromList [mkAcc 1,mkAcc 0]
+      recogniser t "xxxabcdea" `shouldBe` Set.fromList [mkAcc 0,mkAcc 1]
+
+-- ---------------------------------------------------------------------
+
+recogniser :: Tables -> String -> Set.Set (Accept Code)
+recogniser t s = snd $ foldl' step (0,Set.empty) s
+  where
+    step (st,ac) c = (st',Set.union ac ac')
+      where
+        (st',ac') = nextState t st (ord c)
+
+-- ---------------------------------------------------------------------
+
+makeMatcher :: [String] -> Tables
+makeMatcher ss = Tables base table check deflt acc'
+  where
+    enc = UTF8
+    toks = map (mkTok . stringAsRegex) ss
+    scanner = Scanner "foo" toks
+    startcodes = [1]
+    dfa = minimizeDFA $ scanner2dfa enc scanner startcodes
+    (base,table,check,deflt,acc) = mkTables dfa
+    acc' = map Set.fromList acc
+
+-- ---------------------------------------------------------------------
+
+stringAsRegex :: String -> RExp
+stringAsRegex s = foldl' acc Eps s
+  where
+    acc re c = re :%% Ch (charSetSingleton c)
+
+-- ---------------------------------------------------------------------
+
 data Tables = Tables
-    { tblBase :: [Int]
-    , tblTable :: [Int]
-    , tblCheck :: [Int]
-    , tblDefault :: [Int]
-    , tblAccept :: [[Accept Code]]
+    { tblBase    :: ![Int]
+    , tblTable   :: ![Int]
+    , tblCheck   :: ![Int]
+    , tblDefault :: ![Int]
+    , tblAccept  :: ![Set.Set (Accept Code)]
     } deriving Show
 
-nextState :: Tables -> Int -> Int -> Int
+-- ---------------------------------------------------------------------
+
+nextState :: Tables -> Int -> Int -> (Int,Set.Set (Accept Code))
 nextState t s a
-  | s < 0 = 0
+  | s < 0 = (0,Set.empty)
   | otherwise =
   let
-    Tables base table check deflt _accept = t
+    Tables base table check deflt accept = t
+    ret ns = (ns,accept !! ns)
   in
     if check !! ((base !! s) + a) == a
-      then table !! ((base !! s) + a)
+      then ret $ table !! ((base !! s) + a)
       else nextState t (deflt !! s) a
+
+-- ---------------------------------------------------------------------
 
 mkTok :: RExp -> RECtx
 mkTok re = RECtx { reCtxStartCodes = [("code1",1)]
@@ -121,9 +187,13 @@ mkTok re = RECtx { reCtxStartCodes = [("code1",1)]
                  , reCtxCode       = Nothing
                  }
 
+-- ---------------------------------------------------------------------
+
 mkAcc :: Int -> Accept Code
 mkAcc prio = Acc { accPrio     = prio
                  , accAction   = Nothing
                  , accLeftCtx  = Nothing
                  , accRightCtx = NoRightContext
                  }
+
+-- ---------------------------------------------------------------------
